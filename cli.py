@@ -1,3 +1,5 @@
+import argparse
+
 from kvstore import KVStore
 
 HELP = """Commands:
@@ -34,19 +36,28 @@ def run_command(store, line):
 
 
 def main():
-    store = KVStore()
-    print("kv-store ready. Type HELP for commands.")
-    while True:
-        try:
-            line = input("> ")
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        result = run_command(store, line)
-        if result is None:
-            break
-        if result:
-            print(result)
+    parser = argparse.ArgumentParser(description="A small key-value database.")
+    parser.add_argument(
+        "--file", default="kv.log", help="log file that keeps your data (default: kv.log)"
+    )
+    args = parser.parse_args()
+
+    store = KVStore(args.file)
+    print(f"kv-store ready ({len(store)} keys loaded from {args.file}). Type HELP for commands.")
+    try:
+        while True:
+            try:
+                line = input("> ")
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            result = run_command(store, line)
+            if result is None:
+                break
+            if result:
+                print(result)
+    finally:
+        store.close()
 
 
 if __name__ == "__main__":

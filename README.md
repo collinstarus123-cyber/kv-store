@@ -27,13 +27,28 @@ Commands: `SET key value`, `GET key`, `DEL key`, `KEYS`, `HELP`, `EXIT`.
 python -m pip install pytest
 python -m pytest -v
 ```
+## How durability works
+
+Every change is first appended to a **write-ahead log** (`kv.log`), one JSON record per line, and only then applied in memory:
+
+```
+{"op": "set", "key": "city", "value": "Paris"}
+{"op": "del", "key": "city"}
+```
+
+On startup the log is replayed from the top to rebuild the state.
+
+- Each append is flushed and `fsync`ed, so an acknowledged write survives a crash or power cut.
+- A write cut off mid-line by a crash is detected and ignored, and the log stays usable.
+- `test_persistence.py` includes a test that hard-kills a writer process and checks that every acknowledged write is still there.
+- Trade-off: `fsync` on every write is slow, because the log grows forever and each write waits for the disk. Compaction is next on the roadmap.
 
 ## Roadmap
 
 - [x] In-memory store with set, get, delete
 - [x] Interactive command line
-- [ ] Persistence with an append-only write-ahead log
-- [ ] Crash recovery
+- [x] Persistence with an append-only write-ahead log
+- [x] Crash recovery
 - [ ] Compaction of the log
 - [ ] Indexing and range queries
 - [ ] Network server
